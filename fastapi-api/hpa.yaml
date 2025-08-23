@@ -1,0 +1,18 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler #HPA
+metadata:
+  name: fastapi-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fastapi-deployment # 이 Deployment를 대상으로 함
+  minReplicas: 1 # 최소 Pod 수
+  maxReplicas: 5 # 최대 5개까지 확장
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50 # CPU 사용률이 50%를 넘으면 Pod를 늘림

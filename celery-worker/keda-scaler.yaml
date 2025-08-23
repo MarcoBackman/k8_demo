@@ -1,0 +1,17 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: celery-worker-scaler
+spec:
+  scaleTargetRef:
+    name: celery-worker-deployment # 이 Deployment를 대상으로 함
+  minReplicaCount: 1  # 최소 Pod 수
+  maxReplicaCount: 10 # 최대 10개까지 확장
+  pollingInterval: 15 # 15초마다 큐 길이 체크
+  cooldownPeriod:  30 # 부하가 줄어든 후 30초 대기하고 Pod 수 축소
+  triggers:
+  - type: redis
+    metadata:
+      address: redis-service:6379 # Redis 서비스 주소
+      listName: celery # Celery의 기본 큐 이름
+      listLength: "5" # 큐에 작업이 5개 쌓일 때마다 Pod를 하나씩 늘림

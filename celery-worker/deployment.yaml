@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: celery-worker-deployment
+spec:
+  replicas: 1 # KEDA(Kubernetes Event-driven Autoscaling)가 관리하므로 시작은 1개 (또는 0개로 설정 가능)
+  selector:
+    matchLabels:
+      app: celery-worker
+  template:
+    metadata:
+      labels:
+        app: celery-worker
+    spec:
+      containers:
+      - name: celery-worker
+      image: your-dockerhub-username/fastapi-celery-scaler:latest # 중요: 본인 Docker Hub ID로 변경하세요!
+      imagePullPolicy: Always
+      command: ["celery", "-A", "celery_tasks.tasks.celery_app", "worker", "--loglevel=info"]
+      env:
+        - name: REDIS_URL
+          value: "redis://redis-service:6379/0"
