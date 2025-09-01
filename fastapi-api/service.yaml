@@ -3,10 +3,11 @@ kind: Service
 metadata:
   name: fastapi-service
 spec:
-  selector:
-    app: fastapi-api
+  type: LoadBalancer
   ports:
-    - protocol: TCP
-      port: 80
+    - port: 8000
       targetPort: 8000
-  type: LoadBalancer # Minikube 환경에서는 LoadBalancer 타입이 편리합니다.
+      protocol: TCP
+      name: http
+  selector:
+    app: fastapi_app
