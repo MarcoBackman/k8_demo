@@ -10,4 +10,4 @@ spec:
       protocol: TCP
       name: http
   selector:
-    app: fastapi_app
+    app: fastapi-app

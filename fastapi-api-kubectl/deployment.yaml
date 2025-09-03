@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-app
+  template:
+    metadata:
+      labels:
+        app: fastapi-app
+    spec:
+      containers:
+      - name: fastapi-api
+        image: fastapi-app:local
+        imagePullPolicy: IfNotPresent
+        command: ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+        env:
+        - name: REDIS_URL
+          value: "redis://redis-service:6379/0"
+        ports:
+        - containerPort: 8000
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: / # 이 엔드포인트가 실제 앱에 존재해야 함
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: / # 이 엔드포인트가 실제 앱에 존재해야 함
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-service
+spec:
+  type: NodePort #내부 클러스터를 외부로 노출 - LB 역할
+  selector:
+    app: fastapi-app
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

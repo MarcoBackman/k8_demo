@@ -1,12 +1,16 @@
 FROM python:3.9-slim
 WORKDIR /app
 
-# Copy requirements and install
-COPY ./celery_tasks/requirements.txt .
+# Install dependencies
+COPY ./app/celery_tasks/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the shared tasks code
-COPY . .
+# --- CORRECTED COPY COMMANDS ---
+# Copy the celery_tasks directory to /app/celery_tasks
+COPY ./app/celery_tasks ./celery_tasks
 
-# This command tells Celery to look inside the `celery_tasks` package
-CMD ["celery", "-A", "celeryapp", "worker", "--loglevel=info"]
+# Copy the config file to the root of the workdir /app
+COPY ./app/celery_config.py .
+
+# Command to start the Celery worker
+CMD ["celery", "-A", "celery_config.celery_app", "worker", "--loglevel=info"]

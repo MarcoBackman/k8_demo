@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from celery_tasks.tasks import celery_app, long_running_task
+from celery_tasks.tasks import long_running_task
 
 app = FastAPI()
 

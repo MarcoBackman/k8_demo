@@ -1,11 +1,11 @@
-from celeryapp import celery_app
-import time
-
+# Import the shared Celery app instance
+from celery_config import celery_app
 
 @celery_app.task
 def long_running_task(data: str):
-    """5초가 소요되는 무거운 작업을 시뮬레이션합니다."""
-    print(f"Celery worker received data: {data}")
-    time.sleep(5)
-    print("Celery worker finished the task.")
-    return f"Successfully processed '{data}'"
+    """A simple task that simulates work."""
+    import time
+    print(f"Starting task with data: {data}")
+    time.sleep(5)  # Simulate a 5-second task
+    print(f"Finished task with data: {data}")
+    return f"Processed: {data}"

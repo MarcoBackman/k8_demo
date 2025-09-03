@@ -2,51 +2,85 @@
 이 프로젝트는 쿠버네티스 환경에서 트래픽 및 작업 부하에 따라 FastAPI와 Celery Worker Pod 수를 자동으로 조절하는 방법을 보여줍니다.
 
 ### **사전 준비**
-1. Docker Desktop 또는 Minikube와 같은 로컬 쿠버네티스 클러스터
+1. Docker Desktop 로컬 쿠버네티스 클러스터
 2. kubectl CLI
-3. Docker Hub 계정
+3. github repository 소스 코드
+4. KEDA를 위한 helm
+5. 윈도우 환경
 
-## 1단계: Metrics Server 설치 (FastAPI HPA용)
-HPA는 Pod의 리소스 사용량을 알아야 합니다. Minikube 환경에서는 아래 명령어로 간단히 활성화할 수 있습니다.
+## 1단계: Docker의 쿠버네티스 설정
 
-minikube addons enable metrics-server
+### Docker Desktop에서 Kubernetes 활성화 
 
-## 2단계: KEDA 설치 (Celery Worker 스케일링용)
-KEDA는 Redis 큐 길이를 모니터링하여 Celery Worker를 확장하는 데 사용됩니다. Helm을 사용하거나 직접 YAML을 적용하여 설치할 수 있습니다.
+![Docker k8 활성화](./img/1.png)
 
+Docker Desktop을 실행하고 Settings > Kubernetes 메뉴로 이동하여 Enable Kubernetes 체크박스를 활성화합니다.
+
+
+### KEDA를 위한 Helm 설치.
+
+1. `choco install kubernetes-helm` 으로 윈도우에서 helm을 설치 해 줍니다.
+
+> 만약 choco 명령어가 말을 듣지 않는다면 powershell을 관리자 권한으로 열으셔서 `Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))` <- 명령어를 쳐 줍니다. 그 다음, `choco install kubernetes-helm`을 쳐서 helm을 설치 합니다.
+
+2. helm repo update Helm한테 Keda 설치 패키지 장소를 알려줍니다.
 ```
-# Helm을 사용하는 경우
 helm repo add kedacore https://kedacore.github.io/charts
 helm repo update
-helm install keda kedacore/keda --namespace keda --create-namespace
-
-# 또는 kubectl로 직접 설치
-kubectl apply -f https://github.com/kedacore/keda/releases/download/v2.12.0/keda-2.12.0.yaml
 ```
 
-## 3단계: Docker 이미지 빌드 및 푸시
-1. `fastapi-api/deployment.yaml`과 `celery-worker/deployment.yaml` 파일에서 `your-dockerhub-username`을 본인의 Docker Hub ID로 변경하세요.
-2. 프로젝트의 app/ 폴더로 이동합니다.
-3. 아래 명령어를 실행하여 이미지를 빌드하고 푸시합니다.
+3. KEDA를 쿠버네티스 클러스터에 설치
+
+`helm install keda kedacore/keda --namespace keda --create-namespace`
+
+4. KEDA 설치 확인
+
+`kubectl get pods -n keda`
+
+다음처럼 출력되어야 정상입니다.
+
+![Docker k8 활성화](./img/2.png)
+
+
+## 2단계: Docker 이미지 빌드 및 푸시
+이제 프로젝트의 루트 디렉터리(C:\...)에서 PowerShell 또는 CMD를 열고 다음 명령어를 실행하여 Docker 이미지를 빌드합니다. 이 이미지들은 Docker Hub에 올라가지 않고 사용자의 로컬 Docker 데몬에 저장됩니다.
 
 ```
-# app 폴더 안에서 실행
-docker build -t your-dockerhub-username/fastapi-celery-scaler:latest .
-docker push your-dockerhub-username/fastapi-celery-scaler:latest
+# FastAPI 앱 이미지 빌드
+docker build -t fastapi-app:local -f app/api/Dockerfile .
+
+# Celery 워커 이미지 빌드
+docker build -t celery-worker:local -f app/celery_tasks/Dockerfile .
 ```
 
-## 4단계: 쿠버네티스에 배포
+마지막으로 `docker images`를 입력하여 이미지가 성공적으로 제작되었는지 확인한다.
+
+다음 로그처럼 두개의 이미지가 로컬에 존재해야 한다
+
+```
+fastapi-app                                local                                                                         b69001837218   3 minutes ago   237MB
+celery-worker                              local                                                                         535701121e59   26 hours ago    244MB
+```
+
+## 3단계: 쿠버네티스에 배포
 프로젝트의 루트 폴더에서 아래 명령어를 순서대로 실행합니다.
 
+여기서 중요한 점은 올바른 클러스터에서 실행 시켜 주셔야 합니다.
+`kubectl config get-contexts` 을 입력하여 클러스터 목록을 확인합니다.
+
+만약 `docker-desktop`으로 쿠버네티스가 허용이 안돼어 있다면
+
+`kubectl config use-context docker-desktop`으로 클러스터를 변경합니다.
+
 ```
-# Redis 배포
-kubectl apply -f ./redis/
+# 1. Redis 배포 (StatefulSet + Service)
+kubectl apply -f redis-kubectl/
 
-# FastAPI API 배포 (Deployment, Service, HPA)
-kubectl apply -f ./fastapi-api/
+# 2. FastAPI 배포 (Deployment + Service)
+kubectl apply -f fastapi-api-kubectl/
 
-# Celery Worker 배포 (Deployment, KEDA Scaler)
-kubectl apply -f ./celery-worker/
+# 3. Celery 워커 배포 (Deployment + KEDA Scaler)
+kubectl apply -f celery-worker-kubectl/
 ```
 
 ## 5단계: 자동 확장(Auto-scaling) 테스트

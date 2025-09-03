@@ -1,0 +1,81 @@
+# 다른 파드들이 Redis에 접근할 수 있도록 하는 Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service # FastAPI와 Celery에서 사용한 서비스 이름
+spec:
+  selector:
+    app: redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+---
+# 데이터를 영구적으로 저장하기 위한 StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-statefulset
+spec:
+  serviceName: "redis-service"
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:6-alpine
+        command: ["redis-server", "/usr/local/etc/redis/redis.conf"] # 설정 파일 사용
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            memory: "256Mi"
+        livenessProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["redis-cli", "ping"]
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /usr/local/etc/redis
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-configmap # 아래에서 정의할 ConfigMap
+  # PersistentVolumeClaim 템플릿: 각 파드를 위한 영구 스토리지를 동적으로 생성
+  volumeClaimTemplates:
+  - metadata:
+      name: redis-data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi # 1 GigaByte의 저장 공간 요청
+---
+# Redis 설정을 관리하기 위한 ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-configmap
+data:
+  redis.conf: |
+    # Redis가 데이터를 저장할 위치 지정
+    dir /data
+    # 메모리 부족 시 데이터 삭제 정책 (선택)
+    # maxmemory-policy allkeys-lru
