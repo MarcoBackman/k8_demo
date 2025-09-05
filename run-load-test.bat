@@ -5,7 +5,7 @@ REM    minikube service fastapi-service --url
 REM 2. 아래 API_URL 변수에 확인된 URL을 입력합니다.
 REM 3. CMD 창에서 `run-load-test.bat` 실행
 
-set API_URL="http://<YOUR-MINIKUBE-IP>:<PORT>/start-task"
+set API_URL="http://localhost:8000/start-task"
 set REQUEST_COUNT=100
 
 echo Starting load test on %API_URL%...

@@ -83,7 +83,33 @@ kubectl apply -f fastapi-api-kubectl/
 kubectl apply -f celery-worker-kubectl/
 ```
 
+다음과 같이 pod와 로그를 확인했을 때 사진처럼 보이면 정상 작동입니다. (모든 STATUS가 Running 이여야 함)
+![kubernetes pod 상태](./img/3.png)
+
+
+## 4단계: 수동 테스트 해 보기
+
+1. 먼저 postman을 통해 다음과 같이 post요청을 보냅니다.
+
+![kubernetes pod 상태](./img/4.png)
+
+2. 그 다음 각 pod의 로그를 확인해 성공여부를 판단합니다.
+
+`kubectl get pods`로 pod의 고유 ID를 식별 후 `kubectl logs [ID]`를 입력해 각 pod의 로그를 다음 사진처럼 확인합니다.
+![kubernetes pod 상태](./img/5.png)
+
+Celery도 다음과 같이 출력 되어야 합니다.
+![kubernetes pod 상태](./img/6.png)
+
+
 ## 5단계: 자동 확장(Auto-scaling) 테스트
+
+0. 먼저 hpa (Horizontal Pod Autoscaling)이 적용되었는지 다음 명령어를 쳐서 확인해 봅니다.
+`kubectl get hpa`
+
+그러면 다음처럼 내용이 떠야 합니다.
+
+![kubernetes hpa 상태](./img/7.png)
 
 1. 새 터미널을 열고 Pod와 HPA의 상태를 모니터링합니다. -w 플래그는 변경 사항을 실시간으로 보여줍니다.
 ```

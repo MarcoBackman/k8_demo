@@ -1,4 +1,4 @@
-$apiUrl = "http://<YOUR-MINIKUBE-IP>:<PORT>/start-task" # 예: http://192.168.49.2:31000/start-task
+$apiUrl = "http://localhost:8000/start-task" # 예: http://192.168.49.2:31000/start-task
 $requestCount = 100 # 총 100번의 요청을 보냅니다.
 $parallelJobs = 10   # 동시에 10개의 요청을 병렬로 보냅니다.
 
